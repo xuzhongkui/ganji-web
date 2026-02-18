@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑记录 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="admin_dashboard.html">数据管理</a>
+                <a href="admin_users.html">业务员管理</a>
+                <a href="admin_customers.html">用户管理</a>
+                <a href="admin_accounts.html">收款账号</a>
+                <a href="admin_expenses.html">记事本</a>
+            </div>
+            <div class="nav-right">
+                <a href="admin_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>编辑记录</h2>
+        <div id="message" class="message"></div>
+
+        <form id="editForm">
+            <input type="hidden" id="recordId" name="id">
+            
+            <div class="form-group">
+                <label for="salesperson_name">业务员：</label>
+                <input type="text" id="salesperson_name" name="salesperson_name" readonly style="background-color: #f0f0f0;">
+            </div>
+
+            <div class="form-group">
+                <label for="realname">用户姓名：</label>
+                <input type="text" id="realname" name="realname" required>
+            </div>
+
+            <div class="form-group">
+                <label for="record_date">日期：</label>
+                <input type="date" id="record_date" name="record_date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="deposit">定金：</label>
+                <input type="number" id="deposit" name="deposit" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="location">地址：</label>
+                <input type="text" id="location" name="location">
+            </div>
+
+            <div class="form-group">
+                <label for="fare">车费：</label>
+                <input type="number" id="fare" name="fare" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="project_fee">项目费用：</label>
+                <input type="number" id="project_fee" name="project_fee" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="overtime_fee">加钟费：</label>
+                <input type="number" id="overtime_fee" name="overtime_fee" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="commission">应得佣金35%（自动计算）：</label>
+                <input type="number" id="commission" name="commission" step="0.01" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="is_paid">是否发放：</label>
+                <select id="is_paid" name="is_paid">
+                    <option value="0">未发</option>
+                    <option value="1">已发</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">保存修改</button>
+        </form>
+    </div>
+
+    <script>
+        // 获取URL参数
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // 加载记录数据
+        var recordId = getUrlParameter('id');
+        if (recordId) {
+            fetch('admin_get_record.php?id=' + recordId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var record = data.record;
+                        document.getElementById('recordId').value = record.id;
+                        document.getElementById('salesperson_name').value = record.salesperson_name;
+                        document.getElementById('realname').value = record.realname;
+                        document.getElementById('record_date').value = record.record_date;
+                        document.getElementById('deposit').value = record.deposit;
+                        document.getElementById('location').value = record.location;
+                        document.getElementById('fare').value = record.fare;
+                        document.getElementById('project_fee').value = record.project_fee;
+                        document.getElementById('overtime_fee').value = record.overtime_fee;
+                        document.getElementById('commission').value = record.commission;
+                        document.getElementById('is_paid').value = record.is_paid;
+                        // 初始计算一次佣金
+                        calculateSalary();
+                    } else {
+                        alert(data.message);
+                        window.location.href = 'admin_dashboard.html';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading record:', error);
+                    alert('加载记录失败，请重试！');
+                    window.location.href = 'admin_dashboard.html';
+                });
+        }
+
+        // 自动计算佣金
+        function calculateSalary() {
+            var deposit = parseFloat(document.getElementById('deposit').value) || 0;
+            var projectFee = parseFloat(document.getElementById('project_fee').value) || 0;
+            var overtimeFee = parseFloat(document.getElementById('overtime_fee').value) || 0;
+            var fare = parseFloat(document.getElementById('fare').value) || 0;
+            
+            var commission = ((projectFee+overtimeFee) * 0.35-deposit-fare*0.5).toFixed(2);
+            
+            document.getElementById('commission').value = commission;
+        }
+
+        // 监听输入变化
+        document.getElementById('deposit').addEventListener('input', calculateSalary);
+        document.getElementById('project_fee').addEventListener('input', calculateSalary);
+        document.getElementById('overtime_fee').addEventListener('input', calculateSalary);
+        document.getElementById('fare').addEventListener('input', calculateSalary);
+
+        // 提交表单
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            
+            fetch('admin_update_record.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var messageDiv = document.getElementById('message');
+                if (data.success) {
+                    messageDiv.className = 'message success show';
+                    messageDiv.textContent = data.message || '保存成功！';
+                    setTimeout(function() {
+                        window.location.href = 'admin_dashboard.html';
+                    }, 1500);
+                } else {
+                    messageDiv.className = 'message error show';
+                    messageDiv.textContent = data.message || '保存失败，请重试！';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                var messageDiv = document.getElementById('message');
+                messageDiv.className = 'message error show';
+                messageDiv.textContent = '保存失败：' + error.message;
+            });
+        });
+    </script>
+</body>
+</html>

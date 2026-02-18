@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="admin_dashboard.html">数据管理</a>
+                <a href="admin_users.html">业务员管理</a>
+                <a href="admin_customers.html">用户管理</a>
+                <a href="admin_accounts.html">收款账号</a>
+                <a href="admin_expenses.html">记事本</a>
+                <a href="admin_password.html">修改密码</a>
+            </div>
+            <div class="nav-right">
+                <span id="adminName" style="color: white;"></span>
+                <a href="admin_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>用户管理</h2>
+        <div id="message" class="message"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>真实姓名</th>
+                    <th>注册时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="customersTable">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 加载管理员信息
+        fetch('admin_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'admin_login.html';
+                } else {
+                    document.getElementById('adminName').textContent = '管理员: ' + data.data.username;
+                }
+            });
+
+        // 加载用户列表
+        function loadCustomers() {
+            fetch('admin_get_customers.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var tbody = document.getElementById('customersTable');
+                        tbody.innerHTML = '';
+                        
+                        data.customers.forEach(function(customer) {
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = 
+                                '<td>' + customer.id + '</td>' +
+                                '<td>' + customer.username + '</td>' +
+                                '<td>' + customer.realname + '</td>' +
+                                '<td>' + customer.create_time + '</td>' +
+                                '<td>' + (customer.status == 1 ? '<span style="color:green;">启用</span>' : '<span style="color:red;">禁用</span>') + '</td>' +
+                                '<td>' +
+                                    (customer.status == 1 ? 
+                                        '<button class="btn btn-warning" style="padding:5px 10px;margin-right:5px;" onclick="toggleStatus(' + customer.id + ', 0)">禁用</button>' :
+                                        '<button class="btn btn-success" style="padding:5px 10px;margin-right:5px;" onclick="toggleStatus(' + customer.id + ', 1)">启用</button>') +
+                                    '<button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteCustomer(' + customer.id + ')">删除</button>' +
+                                '</td>';
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
+        }
+
+        // 切换用户状态
+        function toggleStatus(id, status) {
+            fetch('admin_toggle_customer_status.php?id=' + id + '&status=' + status)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.success, data.message);
+                    if (data.success) {
+                        loadCustomers();
+                    }
+                });
+        }
+
+        // 删除用户
+        function deleteCustomer(id) {
+            if (!confirm('确定要删除这个用户吗？')) {
+                return;
+            }
+            
+            fetch('admin_delete_customer.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.success, data.message);
+                    if (data.success) {
+                        loadCustomers();
+                    }
+                });
+        }
+
+        // 显示消息
+        function showMessage(success, message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.className = 'message ' + (success ? 'success' : 'error') + ' show';
+            messageDiv.textContent = message;
+            setTimeout(function() {
+                messageDiv.className = 'message';
+            }, 3000);
+        }
+
+        // 页面加载时获取列表
+        loadCustomers();
+    </script>
+</body>
+</html>
+

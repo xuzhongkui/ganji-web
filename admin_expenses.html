@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记事本 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 3% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .search-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-group select,
+        .search-group input {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="admin_dashboard.html">数据管理</a>
+                <a href="admin_users.html">业务员管理</a>
+                <a href="admin_customers.html">用户管理</a>
+                <a href="admin_accounts.html">收款账号</a>
+                <a href="admin_expenses.html">记事本</a>
+                <a href="admin_password.html">修改密码</a>
+            </div>
+            <div class="nav-right">
+                <span id="adminName" style="color: white;"></span>
+                <a href="admin_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>记事本</h2>
+        <div id="message" class="message"></div>
+
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="showAddModal()">新增支出</button>
+        </div>
+
+        <div class="action-buttons search-group">
+            <input type="text" id="searchCategory" placeholder="类别" style="width: 150px;">
+            
+            <input type="text" id="searchProject" placeholder="支出项目（模糊搜索）" style="width: 180px;">
+            
+            <input type="date" id="startDate" placeholder="开始日期">
+            <span>至</span>
+            <input type="date" id="endDate" placeholder="结束日期">
+            
+            <button class="btn btn-primary" onclick="loadExpenses()">查询</button>
+            <button class="btn btn-warning" onclick="clearSearch()">清除</button>
+        </div>
+
+        <div class="stats-card" style="margin: 20px 0;">
+            <h3 id="totalAmount" style="color: #d9534f;">¥0.00</h3>
+            <p>查询结果总金额</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>类别</th>
+                    <th>支出项目</th>
+                    <th>金额</th>
+                    <th>备注</th>
+                    <th>支出日期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="expensesTable">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 新增/编辑模态框 -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">新增支出</h2>
+            <form id="expenseForm">
+                <input type="hidden" id="expenseId" name="id">
+                
+                <div class="form-group">
+                    <label for="category">类别：</label>
+                    <input type="text" id="category" name="category" placeholder="例如：工资、租金、水电费等" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="project">支出项目：</label>
+                    <input type="text" id="project" name="project" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">金额（元）：</label>
+                    <input type="number" id="amount" name="amount" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="expense_date">支出日期：</label>
+                    <input type="date" id="expense_date" name="expense_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="remark">备注：</label>
+                    <textarea id="remark" name="remark" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">保存</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 加载管理员信息
+        fetch('admin_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'admin_login.html';
+                } else {
+                    document.getElementById('adminName').textContent = '管理员: ' + data.data.username;
+                }
+            });
+
+        // 加载支出列表
+        function loadExpenses() {
+            var category = document.getElementById('searchCategory').value;
+            var project = document.getElementById('searchProject').value.trim();
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
+            
+            var url = 'admin_get_expenses.php?';
+            var params = [];
+            
+            if (category) params.push('category=' + encodeURIComponent(category));
+            if (project) params.push('project=' + encodeURIComponent(project));
+            if (startDate) params.push('start_date=' + startDate);
+            if (endDate) params.push('end_date=' + endDate);
+            
+            url += params.join('&');
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var tbody = document.getElementById('expensesTable');
+                        tbody.innerHTML = '';
+                        
+                        var expenses = data.data.expenses || [];
+                        var totalAmount = 0;
+                        
+                        if (expenses.length == 0) {
+                            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">暂无数据</td></tr>';
+                        } else {
+                            expenses.forEach(function(expense) {
+                                var tr = document.createElement('tr');
+                                tr.innerHTML = 
+                                    '<td>' + expense.id + '</td>' +
+                                    '<td>' + expense.category + '</td>' +
+                                    '<td>' + expense.project + '</td>' +
+                                    '<td style="color: #d9534f; font-weight: bold;">¥' + parseFloat(expense.amount).toFixed(2) + '</td>' +
+                                    '<td>' + (expense.remark || '') + '</td>' +
+                                    '<td>' + expense.expense_date + '</td>' +
+                                    '<td>' +
+                                        '<button class="btn btn-info" style="padding:5px 10px;margin-right:5px;" onclick="editExpense(' + expense.id + ')">编辑</button>' +
+                                        '<button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteExpense(' + expense.id + ')">删除</button>' +
+                                    '</td>';
+                                tbody.appendChild(tr);
+                                
+                                totalAmount += parseFloat(expense.amount) || 0;
+                            });
+                        }
+                        
+                        // 更新总金额
+                        document.getElementById('totalAmount').textContent = '¥' + totalAmount.toFixed(2);
+                    }
+                });
+        }
+
+        // 显示新增模态框
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = '新增支出';
+            document.getElementById('expenseForm').reset();
+            document.getElementById('expenseId').value = '';
+            
+            // 设置默认日期为今天
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('expense_date').value = today;
+            
+            document.getElementById('expenseModal').style.display = 'block';
+        }
+
+        // 编辑支出
+        function editExpense(id) {
+            fetch('admin_get_expense.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var expense = data.data.expense;
+                        document.getElementById('modalTitle').textContent = '编辑支出';
+                        document.getElementById('expenseId').value = expense.id;
+                        document.getElementById('category').value = expense.category;
+                        document.getElementById('project').value = expense.project;
+                        document.getElementById('amount').value = expense.amount;
+                        document.getElementById('expense_date').value = expense.expense_date;
+                        document.getElementById('remark').value = expense.remark || '';
+                        document.getElementById('expenseModal').style.display = 'block';
+                    } else {
+                        showMessage(false, data.message);
+                    }
+                });
+        }
+
+        // 删除支出
+        function deleteExpense(id) {
+            if (!confirm('确定要删除这条支出记录吗？')) {
+                return;
+            }
+            
+            fetch('admin_delete_expense.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.success, data.message);
+                    if (data.success) {
+                        loadExpenses();
+                    }
+                });
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('expenseModal').style.display = 'none';
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            document.getElementById('searchCategory').value = '';
+            document.getElementById('searchProject').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            loadExpenses();
+        }
+
+        // 提交表单
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            
+            fetch('admin_save_expense.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.success, data.message);
+                if (data.success) {
+                    closeModal();
+                    loadExpenses();
+                }
+            });
+        });
+
+        // 显示消息
+        function showMessage(success, message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.className = 'message ' + (success ? 'success' : 'error') + ' show';
+            messageDiv.textContent = message;
+            setTimeout(function() {
+                messageDiv.className = 'message';
+            }, 3000);
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            var modal = document.getElementById('expenseModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // 页面加载时获取列表
+        loadExpenses();
+    </script>
+</body>
+</html>
+

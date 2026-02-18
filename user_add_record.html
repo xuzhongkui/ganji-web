@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>录入数据 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="user_dashboard.html">我的数据</a>
+                <a href="user_add_record.html">录入数据</a>
+                <a href="user_profile.html">个人资料</a>
+            </div>
+            <div class="nav-right">
+                <span id="userName" style="color: white;"></span>
+                <a href="user_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>录入数据</h2>
+
+        <form id="addForm" style="max-width: 700px; margin: 0 auto;">
+            <div class="form-group">
+                <label for="record_date">日期：</label>
+                <input type="date" id="record_date" name="record_date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="deposit">定金（元）：</label>
+                <input type="number" id="deposit" name="deposit" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="location">地址：</label>
+                <input type="text" id="location" name="location" placeholder="请输入地址">
+            </div>
+
+            <div class="form-group">
+                <label for="fare">车费（元）：</label>
+                <input type="number" id="fare" name="fare" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="project_fee">项目费用（元）：</label>
+                <input type="number" id="project_fee" name="project_fee" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="overtime_fee">加钟费（元）：</label>
+                <input type="number" id="overtime_fee" name="overtime_fee" step="0.01" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="commission">应得佣金35%（自动计算）：</label>
+                <input type="number" id="commission" name="commission" step="0.01" readonly style="background-color: #f0f0f0; font-weight: bold; color: #d9534f;">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">提交数据</button>
+            <button type="reset" class="btn btn-warning btn-full" style="margin-top: 10px;" onclick="resetForm()">重置</button>
+        </form>
+        
+        <div id="message" class="message" style="max-width: 700px; margin: 20px auto 0;"></div>
+    </div>
+
+    <script>
+        var userRealname = '';
+        
+        // 加载用户信息
+        fetch('user_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'user_login.html';
+                } else {
+                    userRealname = data.data.realname;
+                    document.getElementById('userName').textContent = '用户: ' + data.data.realname;
+                }
+            });
+
+        // 设置默认日期为今天
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('record_date').value = today;
+
+        // 自动计算抽成和工资
+        function calculateSalary() {
+            var deposit = parseFloat(document.getElementById('deposit').value) || 0;
+            var projectFee = parseFloat(document.getElementById('project_fee').value) || 0;
+            var overtimeFee = parseFloat(document.getElementById('overtime_fee').value) || 0;
+            var fare = parseFloat(document.getElementById('fare').value) || 0;
+            
+            var total = deposit + projectFee + overtimeFee + fare;
+            var commission = ((projectFee+overtimeFee) * 0.35-deposit-fare*0.5).toFixed(2);
+            
+            document.getElementById('commission').value = commission;
+        }
+
+        // 监听输入变化
+        document.getElementById('deposit').addEventListener('input', calculateSalary);
+        document.getElementById('project_fee').addEventListener('input', calculateSalary);
+        document.getElementById('overtime_fee').addEventListener('input', calculateSalary);
+        document.getElementById('fare').addEventListener('input', calculateSalary);
+
+        // 初始计算
+        calculateSalary();
+
+        // 重置表单
+        function resetForm() {
+            setTimeout(function() {
+                document.getElementById('record_date').value = today;
+                calculateSalary();
+            }, 10);
+        }
+
+        // 提交表单
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            
+            fetch('user_add_record_action.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var messageDiv = document.getElementById('message');
+                if (data.success) {
+                    messageDiv.className = 'message success show';
+                    messageDiv.textContent = data.message || '数据录入成功！';
+                    // 重置表单
+                    document.getElementById('addForm').reset();
+                    document.getElementById('record_date').value = today;
+                    calculateSalary();
+                } else {
+                    messageDiv.className = 'message error show';
+                    messageDiv.textContent = data.message || '数据录入失败，请重试！';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                var messageDiv = document.getElementById('message');
+                messageDiv.className = 'message error show';
+                messageDiv.textContent = '提交失败：' + error.message;
+            });
+        });
+    </script>
+</body>
+</html>
+

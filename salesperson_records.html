@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的记录 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="salesperson_dashboard.html">数据录入</a>
+                <a href="salesperson_records.html">我的记录</a>
+                <a href="salesperson_profile.html">个人资料</a>
+            </div>
+            <div class="nav-right">
+                <span id="salespersonName" style="color: white;"></span>
+                <a href="salesperson_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>我的录入记录</h2>
+        <div id="message" class="message"></div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div class="stats-card">
+                <h3 id="totalRecords">0</h3>
+                <p>总记录数</p>
+            </div>
+            <div class="stats-card">
+                <h3 id="totalAmount">¥0.00</h3>
+                <p>应付佣金总金额</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户姓名</th>
+                    <th>日期</th>
+                    <th>定金</th>
+                    <th>地址</th>
+                    <th>车费</th>
+                    <th>项目费用</th>
+                    <th>加钟费</th>
+                    <th>应付佣金35%</th>
+                    <th>是否发放</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="recordsTable">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 加载业务员信息
+        fetch('salesperson_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'salesperson_login.html';
+                } else {
+                    document.getElementById('salespersonName').textContent = '业务员: ' + data.data.realname;
+                }
+            });
+
+        // 加载记录
+        function loadRecords() {
+            fetch('salesperson_get_records.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var tbody = document.getElementById('recordsTable');
+                        tbody.innerHTML = '';
+                        
+                        // 更新统计
+                        document.getElementById('totalRecords').textContent = data.stats.total_records;
+                        document.getElementById('totalAmount').textContent = '¥' + parseFloat(data.stats.total_amount).toFixed(2);
+                        
+                        if (data.records.length == 0) {
+                            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">暂无数据</td></tr>';
+                            return;
+                        }
+                        
+                        data.records.forEach(function(record) {
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = 
+                                '<td>' + record.id + '</td>' +
+                                '<td>' + record.realname + '</td>' +
+                                '<td>' + record.record_date + '</td>' +
+                                '<td>' + record.deposit + '</td>' +
+                                '<td>' + record.location + '</td>' +
+                                '<td>' + record.fare + '</td>' +
+                                '<td>' + record.project_fee + '</td>' +
+                                '<td>' + record.overtime_fee + '</td>' +
+                                '<td>' + record.commission + '</td>' +
+                                '<td>' + (record.is_paid == 1 ? '<span style="color:green;">已发</span>' : '<span style="color:red;">未发</span>') + '</td>' +
+                                '<td><button class="btn btn-primary" onclick="editRecord(' + record.id + ')" style="padding: 5px 15px;">编辑</button></td>';
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
+        }
+
+        // 编辑记录
+        function editRecord(id) {
+            window.location.href = 'salesperson_edit_record.html?id=' + id;
+        }
+
+        // 页面加载时获取数据
+        loadRecords();
+    </script>
+</body>
+</html>
+

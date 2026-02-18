@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的数据 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="user_dashboard.html">我的数据</a>
+                <a href="user_add_record.html">录入数据</a>
+                <a href="user_profile.html">个人资料</a>
+            </div>
+            <div class="nav-right">
+                <span id="userName" style="color: white;"></span>
+                <a href="user_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>我的数据记录</h2>
+        <div id="message" class="message"></div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div class="stats-card">
+                <h3 id="totalRecords">0</h3>
+                <p>总记录数</p>
+            </div>
+            <div class="stats-card">
+                <h3 id="totalCommission">¥0.00</h3>
+                <p>总佣金</p>
+            </div>
+            <div class="stats-card">
+                <h3 id="paidCommission">¥0.00</h3>
+                <p>已发佣金</p>
+            </div>
+            <div class="stats-card">
+                <h3 id="unpaidCommission">¥0.00</h3>
+                <p>未发佣金</p>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <select id="filterPaid" onchange="loadRecords()" style="width: auto;">
+                <option value="">全部</option>
+                <option value="1">已发放</option>
+                <option value="0">未发放</option>
+            </select>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>                   
+                    <th>日期</th>
+                    <th>定金</th>
+                    <th>地址</th>
+                    <th>车费</th>
+                    <th>项目费用</th>
+                    <th>加钟费</th>
+                    <th>应得佣金35%</th>
+                    <th>是否发放</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="recordsTable">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        var userRealname = '';
+        
+        // 加载用户信息
+        fetch('user_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'user_login.html';
+                } else {
+                    userRealname = data.data.realname;
+                    document.getElementById('userName').textContent = '用户: ' + data.data.realname;
+                }
+            });
+
+        // 加载统计数据
+        function loadStats() {
+            fetch('user_get_stats.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalRecords').textContent = data.stats.total_records;
+                        document.getElementById('totalCommission').textContent = '¥' + parseFloat(data.stats.total_commission).toFixed(2);
+                        document.getElementById('paidCommission').textContent = '¥' + parseFloat(data.stats.paid_commission).toFixed(2);
+                        document.getElementById('unpaidCommission').textContent = '¥' + parseFloat(data.stats.unpaid_commission).toFixed(2);
+                    }
+                });
+        }
+
+        // 加载记录
+        function loadRecords() {
+            var filterPaid = document.getElementById('filterPaid').value;
+            fetch('user_get_records.php?filter_paid=' + filterPaid)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var tbody = document.getElementById('recordsTable');
+                        tbody.innerHTML = '';
+                        
+                        if (data.records.length == 0) {
+                            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">暂无数据</td></tr>';
+                            return;
+                        }
+                        
+                        data.records.forEach(function(record) {
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = 
+                                '<td>' + record.id + '</td>' +                                
+                                '<td>' + record.record_date + '</td>' +
+                                '<td>' + record.deposit + '</td>' +
+                                '<td>' + record.location + '</td>' +
+                                '<td>' + record.fare + '</td>' +
+                                '<td>' + record.project_fee + '</td>' +
+                                '<td>' + record.overtime_fee + '</td>' +
+                                '<td>' + record.commission + '</td>' +
+                                '<td>' + (record.is_paid == 1 ? '<span style="color:green;">已发</span>' : '<span style="color:red;">未发</span>') + '</td>' +
+                                '<td>' +
+                                    '<button class="btn btn-info" style="padding:5px 10px;margin-right:5px;" onclick="editRecord(' + record.id + ')">编辑</button>' +
+                                '</td>';
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
+        }
+
+        // 编辑记录
+        function editRecord(id) {
+            window.location.href = 'user_edit_record.html?id=' + id;
+        }
+
+        // 显示消息
+        function showMessage(success, message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.className = 'message ' + (success ? 'success' : 'error') + ' show';
+            messageDiv.textContent = message;
+            setTimeout(function() {
+                messageDiv.className = 'message';
+            }, 3000);
+        }
+
+        // 页面加载时获取数据
+        loadStats();
+        loadRecords();
+    </script>
+</body>
+</html>

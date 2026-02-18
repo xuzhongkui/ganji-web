@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收款账号管理 - 费用统计系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <div>
+                <a href="admin_dashboard.html">数据管理</a>
+                <a href="admin_users.html">业务员管理</a>
+                <a href="admin_customers.html">用户管理</a>
+                <a href="admin_accounts.html">收款账号</a>
+                <a href="admin_expenses.html">记事本</a>
+                <a href="admin_password.html">修改密码</a>
+            </div>
+            <div class="nav-right">
+                <span id="adminName" style="color: white;"></span>
+                <a href="admin_logout.php">退出登录</a>
+            </div>
+        </div>
+
+        <h2>收款账号管理</h2>
+        <div id="message" class="message"></div>
+
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="showAddModal()">新增账号</button>
+            <input type="text" id="searchName" placeholder="输入用户姓名搜索" style="width: 180px; padding: 10px; margin-left: 10px;">
+            <button class="btn btn-primary" onclick="loadAccounts()" style="padding: 10px 20px;">搜索</button>
+            <button class="btn btn-warning" onclick="clearSearch()" style="padding: 10px 20px;">清除</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户姓名</th>
+                    <th>PayID</th>
+                    <th>BSB</th>
+                    <th>ACC</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="accountsTable">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 新增/编辑模态框 -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">新增收款账号</h2>
+            <form id="accountForm">
+                <input type="hidden" id="accountId" name="id">
+                
+                <div class="form-group">
+                    <label for="realname">用户姓名：</label>
+                    <input type="text" id="realname" name="realname" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="pay_id">PayID：</label>
+                    <input type="text" id="pay_id" name="pay_id">
+                </div>
+
+                <div class="form-group">
+                    <label for="bsb">BSB：</label>
+                    <input type="text" id="bsb" name="bsb">
+                </div>
+
+                <div class="form-group">
+                    <label for="acc">ACC：</label>
+                    <input type="text" id="acc" name="acc">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">保存</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 加载管理员信息
+        fetch('admin_check_session.php')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    window.location.href = 'admin_login.html';
+                } else {
+                    document.getElementById('adminName').textContent = '管理员: ' + data.data.username;
+                }
+            });
+
+        // 加载账号列表
+        function loadAccounts() {
+            var searchName = document.getElementById('searchName').value.trim();
+            var url = 'admin_get_accounts.php';
+            if (searchName) {
+                url += '?search_name=' + encodeURIComponent(searchName);
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var tbody = document.getElementById('accountsTable');
+                        tbody.innerHTML = '';
+                        
+                        var accounts = data.data.accounts || data.accounts || [];
+                        
+                        if (accounts.length == 0) {
+                            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">暂无数据</td></tr>';
+                            return;
+                        }
+                        
+                        accounts.forEach(function(account) {
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = 
+                                '<td>' + account.id + '</td>' +
+                                '<td>' + account.realname + '</td>' +
+                                '<td>' + account.pay_id + '</td>' +
+                                '<td>' + account.bsb + '</td>' +
+                                '<td>' + account.acc + '</td>' +
+                                '<td>' + account.create_time + '</td>' +
+                                '<td>' +
+                                    '<button class="btn btn-info" style="padding:5px 10px;margin-right:5px;" onclick="editAccount(' + account.id + ')">编辑</button>' +
+                                    '<button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteAccount(' + account.id + ')">删除</button>' +
+                                '</td>';
+                            tbody.appendChild(tr);
+                        });
+                    }
+                });
+        }
+
+        // 显示新增模态框
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = '新增收款账号';
+            document.getElementById('accountForm').reset();
+            document.getElementById('accountId').value = '';
+            document.getElementById('accountModal').style.display = 'block';
+        }
+
+        // 编辑账号
+        function editAccount(id) {
+            fetch('admin_get_account.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        var account = data.data.account || data.account;
+                        document.getElementById('modalTitle').textContent = '编辑收款账号';
+                        document.getElementById('accountId').value = account.id;
+                        document.getElementById('realname').value = account.realname;
+                        document.getElementById('pay_id').value = account.pay_id;
+                        document.getElementById('bsb').value = account.bsb;
+                        document.getElementById('acc').value = account.acc;
+                        document.getElementById('accountModal').style.display = 'block';
+                    } else {
+                        showMessage(false, data.message);
+                    }
+                });
+        }
+
+        // 删除账号
+        function deleteAccount(id) {
+            if (!confirm('确定要删除这个收款账号吗？')) {
+                return;
+            }
+            
+            fetch('admin_delete_account.php?id=' + id)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.success, data.message);
+                    if (data.success) {
+                        loadAccounts();
+                    }
+                });
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('accountModal').style.display = 'none';
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            document.getElementById('searchName').value = '';
+            loadAccounts();
+        }
+
+        // 提交表单
+        document.getElementById('accountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            
+            fetch('admin_save_account.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.success, data.message);
+                if (data.success) {
+                    closeModal();
+                    loadAccounts();
+                }
+            });
+        });
+
+        // 显示消息
+        function showMessage(success, message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.className = 'message ' + (success ? 'success' : 'error') + ' show';
+            messageDiv.textContent = message;
+            setTimeout(function() {
+                messageDiv.className = 'message';
+            }, 3000);
+        }
+
+        // 回车键搜索
+        document.getElementById('searchName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadAccounts();
+            }
+        });
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            var modal = document.getElementById('accountModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // 页面加载时获取列表
+        loadAccounts();
+    </script>
+</body>
+</html>
+
