@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Ganji Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f6cbd;
+            --secondary: #6c757d;
+            --success: #2f7d32;
+            --danger: #c62828;
+            --warning: #f57c00;
+            --info: #0288d1;
+            --dark: #23282d;
+            --light: #f8f9fa;
+            --border: #dee2e6;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        /* Sidebar */
+        #sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: var(--dark);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        #sidebar .brand {
+            padding: 15px 20px;
+            background: var(--primary);
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        #sidebar .nav-item {
+            border-bottom: 1px solid #3a3f47;
+        }
+        
+        #sidebar .nav-link {
+            color: #c5c5c5;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
+            background: #1a1e21;
+            color: white;
+        }
+        
+        #sidebar .nav-link i {
+            width: 24px;
+            margin-right: 10px;
+        }
+        
+        #sidebar .menu-header {
+            padding: 10px 20px;
+            font-size: 11-transform: uppercase;
+px;
+            text            color: #6c757d;
+            font-weight: bold;
+        }
+        
+        /* Main Content */
+        #main-content {
+            margin-left: 250px;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        #header {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #header .breadcrumb {
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        #header .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Cards */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            border-radius: 8px;
+            padding: 20px;
+            color: white;
+        }
+        
+        .stat-card.primary { background: var(--primary); }
+        .stat-card.success { background: var(--success); }
+        .stat-card.warning { background: var(--warning); }
+        .stat-card.danger { background: var(--danger); }
+        .stat-card.info { background: var(--info); }
+        
+        .stat-card h3 {
+            font-size: 32px;
+            margin: 0;
+        }
+        
+        .stat-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        /* Tables */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--secondary);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .table td {
+            vertical-align: middle;
+            padding: 12px;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        /* Forms */
+        .form-control, .form-select {
+            border-radius: 4px;
+            padding: 10px 12px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        /* Badge */
+        .badge {
+            padding: 5px 10px;
+            font-weight: 500;
+        }
+        
+        /* Quick Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .quick-link {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.2s;
+        }
+        
+        .quick-link:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .quick-link i {
+            font-size: 32px;
+            margin-right: 15px;
+            color: var(--primary);
+        }
+        
+        .quick-link h6 {
+            margin: 0;
+        }
+        
+        .quick-link small {
+            color: var(--secondary);
+        }
+        
+        /* Toggle Menu */
+        #toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            
+            #sidebar.show {
+                transform: translateX(0);
+            }
+            
+            #main-content {
+                margin-left: 0;
+            }
+            
+            #toggle-sidebar {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div id="sidebar">
+    <div class="brand">
+        <i class="bi bi-shield-check"></i> Ganji Admin
+    </div>
+    
+    <nav>
+        <div class="menu-header">Main</div>
+        <div class="nav-item">
+            <a href="admin_dashboard.html" class="nav-link active">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+        
+        <div class="menu-header">Sales</div>
+        <div class="nav-item">
+            <a href="admin_orders.html" class="nav-link">
+                <i class="bi bi-cart"></i> Orders
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_customers.html" class="nav-link">
+                <i class="bi bi-people"></i> Customers
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_salespersons.html" class="nav-link">
+                <i class="bi bi-person-badge"></i> Salespersons
+            </a>
+        </div>
+        
+        <div class="menu-header">Finance</div>
+        <div class="nav-item">
+            <a href="admin_accounts.html" class="nav-link">
+                <i class="bi bi-wallet2"></i> Accounts
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_expenses.html" class="nav-link">
+                <i class="bi bi-receipt"></i> Expenses
+            </a>
+        </div>
+        
+        <div class="menu-header">System</div>
+        <div class="nav-item">
+            <a href="admin_users.html" class="nav-link">
+                <i class="bi bi-person-gear"></i> Admins
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_settings.html" class="nav-link">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_password.html" class="nav-link">
+                <i class="bi bi-key"></i> Change Password
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_logout.php" class="nav-link">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div id="main-content">
+    <!-- Header -->
+    <header id="header">
+        <div>
+            <button class="btn btn-outline-secondary" id="toggle-sidebar" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+            <nav aria-label="breadcrumb" class="d-inline-block ms-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                    <li class="breadcrumb-item active">Dashboard</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="user-menu">
+            <span><i class="bi bi-person-circle"></i> Admin</span>
+            <a href="admin_logout.php" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
+    
+    <!-- Content -->
+    <div class="p-4">
+        <h4 class="mb-4">Dashboard Overview</h4>
+        
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card primary">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p>Total Sales</p>
+                            <h3>$12,450</h3>
+                        </div>
+                        <i class="bi bi-currency-dollar fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p>Orders</p>
+                            <h3>156</h3>
+                        </div>
+                        <i class="bi bi-cart fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p>Customers</p>
+                            <h3>89</h3>
+                        </div>
+                        <i class="bi bi-people fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card info">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p>Salespersons</p>
+                            <h3>12</h3>
+                        </div>
+                        <i class="bi bi-person-badge fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="quick-links">
+                    <a href="admin_add_record.html" class="quick-link">
+                        <i class="bi bi-plus-circle"></i>
+                        <div>
+                            <h6>Add Record</h6>
+                            <small>Create new record</small>
+                        </div>
+                    </a>
+                    <a href="admin_customers.html" class="quick-link">
+                        <i class="bi bi-person-plus"></i>
+                        <div>
+                            <h6>Add Customer</h6>
+                            <small>New customer</small>
+                        </div>
+                    </a>
+                    <a href="admin_expenses.html" class="quick-link">
+                        <i class="bi bi-receipt"></i>
+                        <div>
+                            <h6>Add Expense</h6>
+                            <small>Record expense</small>
+                        </div>
+                    </a>
+                    <a href="admin_reports.html" class="quick-link">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        <div>
+                            <h6>Reports</h6>
+                            <small>View reports</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Orders -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history"></i> Recent Records</span>
+                <a href="admin_records.html" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Salesperson</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#1001</td>
+                            <td>John Doe</td>
+                            <td>ABC Corp</td>
+                            <td>$1,250</td>
+                            <td><span class="badge bg-success">Paid</span></td>
+                            <td>2026-02-18</td>
+                            <td>
+                                <a href="admin_edit_record.html" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#1002</td>
+                            <td>Jane Smith</td>
+                            <td>XYZ Ltd</td>
+                            <td>$890</td>
+                            <td><span class="badge bg-warning">Pending</span></td>
+                            <td>2026-02-17</td>
+                            <td>
+                                <a href="admin_edit_record.html" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#1003</td>
+                            <td>Mike Johnson</td>
+                            <td>Tech Inc</td>
+                            <td>$2,100</td>
+                            <td><span class="badge bg-success">Paid</span></td>
+                            <td>2026-02-16</td>
+                            <td>
+                                <a href="admin_edit_record.html" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('show');
+}
+
+// Check session
+async function checkSession() {
+    try {
+        const res = await fetch('admin_check_session.php');
+        const data = await res.json();
+        if (!data.logged_in) {
+            window.location.href = 'admin_login.html';
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+checkSession();
+</script>
+
+</body>
+</html>

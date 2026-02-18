@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Ganji Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f6cbd;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+        
+        .login-header {
+            background: var(--primary);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .login-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .login-header p {
+            margin: 10px 0 0;
+            opacity: 0.8;
+        }
+        
+        .login-body {
+            padding: 30px;
+        }
+        
+        .form-control {
+            padding: 12px;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(15, 108, 189, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            padding: 12px;
+        }
+        
+        .btn-primary:hover {
+            background: #0a5a9e;
+            border-color: #0a5a9e;
+        }
+        
+        .alert {
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="login-header">
+        <i class="bi bi-shield-check fs-1"></i>
+        <h2>Ganji Admin</h2>
+        <p>Please enter your login details</p>
+    </div>
+    
+    <div class="login-body">
+        <div id="message" class="alert" style="display: none;"></div>
+        
+        <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" name="username" placeholder="Username" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" name="password" placeholder="Password" required>
+                </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="remember">
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </button>
+        </form>
+        
+        <div class="text-center mt-3">
+            <a href="user_login.html" class="text-muted text-decoration-none">
+                <small>User Login</small>
+            </a>
+            <span class="mx-2">|</span>
+            <a href="salesperson_login.html" class="text-muted text-decoration-none">
+                <small>Salesperson Login</small>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const btn = this.querySelector('button');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in...';
+    
+    try {
+        const res = await fetch('admin_login_action.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showMessage('success', 'Login successful! Redirecting...');
+            setTimeout(() => {
+                window.location.href = 'admin_dashboard.html';
+            }, 1000);
+        } else {
+            showMessage('danger', data.error || 'Login failed');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+        }
+    } catch (err) {
+        showMessage('danger', 'Connection error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Login';
+    }
+});
+
+function showMessage(type, text) {
+    const msg = document.getElementById('message');
+    msg.className = 'alert alert-' + type;
+    msg.textContent = text;
+    msg.style.display = 'block';
+}
+</script>
+
+</body>
+</html>
